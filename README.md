@@ -1,4 +1,4 @@
-# Uncertainty-Aware Drug Response Prediction 
+# Uncertainty-Aware Drug Response Prediction
 
 This repository contains the code for benchmarking uncertainty quantification methods in drug response prediction using the GDSC database, and for leveraging the estiamtes using various applications.
 
@@ -22,7 +22,7 @@ pip install -e ".[shap]"
 
 ## Data
 
-The experiments use the [GDSC](https://www.cancerrxgene.org/) drug response database. Processed data with the right structure is available at: TODO
+The experiments use the [GDSC](https://www.cancerrxgene.org/) drug response database. Processed data with the right structure is available at: [Zenodo](https://zenodo.org/records/19219091)
 
 ## Running experiments
 
