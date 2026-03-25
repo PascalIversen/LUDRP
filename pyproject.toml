@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "uadr"
+version = "0.1.0"
+description = "Uncertainty-Aware Drug Response prediction"
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "pandas",
+    "scipy",
+    "scikit-learn",
+    "torch",
+    "pytorch-lightning",
+    "matplotlib",
+    "openpyxl",
+    "tqdm",
+    "brokenaxes",
+]
+
+[project.optional-dependencies]
+shap = ["shap"]
+
+[tool.setuptools.packages.find]
+include = ["uadr*"]
