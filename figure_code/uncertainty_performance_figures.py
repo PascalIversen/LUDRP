@@ -97,6 +97,42 @@ def compute_auc_and_mseks(df_model):
     return float(auc), float(mse10), float(mse50), float(mse90), float(r_err_unc)
 
 
+def _ranking_skill(df_model):
+    """Accuracy-independent uncertainty-ranking quality in [0, 1].
+
+    1 = ordering test instances by predicted uncertainty matches the oracle ordering
+    by the true absolute error; 0 = no better than random. Defined as
+    1 - (AURC - AURC_oracle) / (AURC_rand - AURC_oracle), using the same risk-coverage
+    curve as compute_auc_and_mseks. This isolates uncertainty quality from baseline accuracy.
+    """
+    df = df_model.rename(columns={"response": "gt", "y_preds": "preds", "y_uncertainty": "uncertainty"}).copy()
+    df = df[df["gt"].notna() & df["preds"].notna()]
+    if len(df) < 3:
+        return np.nan
+    se = ((df["gt"] - df["preds"]) ** 2).to_numpy()
+    abs_err = np.abs(df["gt"].to_numpy() - df["preds"].to_numpy())
+    unc = df["uncertainty"].to_numpy()
+    qs = np.linspace(0, 1, num=500)
+
+    def _aurc(order_key):
+        left, mses = [], []
+        for q in qs:
+            thr = np.quantile(order_key, q)
+            idx = order_key < thr
+            if np.any(idx):
+                left.append(idx.mean())
+                mses.append(se[idx].mean())
+        return np.trapezoid(np.array(mses), np.array(left)) if left else np.nan
+
+    aurc = _aurc(unc)
+    aurc_oracle = _aurc(abs_err)
+    aurc_rand = float(se.mean())
+    denom = aurc_rand - aurc_oracle
+    if not (np.isfinite(aurc) and np.isfinite(aurc_oracle)) or denom <= 1e-12:
+        return np.nan
+    return float(1.0 - (aurc - aurc_oracle) / denom)
+
+
 def get_pi_qnn(df_model, nominal=0.9):
     if not np.isclose(nominal, 0.9):
         raise ValueError("only supports nominal=0.9")
@@ -133,7 +169,8 @@ def _plot_auurc_curves(ax, skip_models=()):
         pooled_df = []
         for df in fold_dfs:
             auc, mse10, mse50, mse90, r_err_unc = compute_auc_and_mseks(df)
-            per_fold.append({"auc": auc, "mse10": mse10, "mse50": mse50, "mse90": mse90, "r_err_unc": r_err_unc})
+            per_fold.append({"auc": auc, "mse10": mse10, "mse50": mse50, "mse90": mse90,
+                             "r_err_unc": r_err_unc, "skill": _ranking_skill(df)})
             pooled_df.append(df)
         metrics_per_model[model] = per_fold
 
@@ -568,12 +605,14 @@ def _generate_uncertainty_table(metrics_per_model, ma_per_model):
         mse50s = np.array([d["mse50"] for d in stats if not np.isnan(d["mse50"])])
         mse90s = np.array([d["mse90"] for d in stats if not np.isnan(d["mse90"])])
         r_err_uncs = np.array([d["r_err_unc"] for d in stats if not np.isnan(d["r_err_unc"])])
+        skills = np.array([d["skill"] for d in stats if not np.isnan(d.get("skill", np.nan))])
 
         mu_auc, sd_auc = mean_std_safe(aucs)
         mu_m10, sd_m10 = mean_std_safe(mse10s)
         mu_m50, sd_m50 = mean_std_safe(mse50s)
         mu_m90, sd_m90 = mean_std_safe(mse90s)
         mu_r, sd_r = mean_std_safe(r_err_uncs)
+        mu_skill, sd_skill = mean_std_safe(skills)
 
         fold_mas = ma_per_model.get(model, np.array([]))
         mu_ma, sd_ma = mean_std_safe(fold_mas)
@@ -584,29 +623,32 @@ def _generate_uncertainty_table(metrics_per_model, ma_per_model):
             fmt(mu_m50, sd_m50), fmt(mu_m90, sd_m90),
             fmt(mu_ma, sd_ma, ndigits=2),
             fmt(mu_r, sd_r, ndigits=2),
+            fmt(mu_skill, sd_skill, ndigits=2),
         ])
 
     metrics_df = pd.DataFrame(rows_fmt,
                                columns=["Model", "AUURC", "MSE@10", "MSE@50", "MSE@90", "MA",
-                                         "Pearson(|err|,unc)"])
+                                         "Pearson(|err|,unc)", "Ranking skill"])
     metrics_df.to_csv(os.path.join(TABLES_DIR, "uncertainty_metrics.csv"), index=False)
 
     # --- Publication LaTeX table ---
-    # Parse mean values for bolding best per column
-    # Lower is better for AUURC, MSE@10, MSE@50, MA; higher is better for Pearson
-    col_indices = [1, 2, 3, 6, 5]  # indices into rows_fmt (MA last)
+    # Parse mean values for bolding best / underlining second-best per column
+    # Lower is better for AUURC, MSE@10, MSE@50, MA; higher is better for r and ranking skill
+    col_indices = [1, 2, 3, 7, 6, 5]  # AUURC, MSE@10, MSE@50, Ranking skill, r, MA
 
     def parse_mean(s, default=np.inf):
         if not s:
             return default
         return float(s.split(" +/- ")[0])
 
-    higher_is_better = {6}  # r(|err|, unc)
-    best_idx = {}
+    higher_is_better = {6, 7}  # r(|err|, unc) and ranking skill
+    best_idx, second_idx = {}, {}
     for ci in col_indices:
         default = -np.inf if ci in higher_is_better else np.inf
         vals = [parse_mean(row[ci], default) for row in rows_fmt]
-        best_idx[ci] = int(np.argmax(vals)) if ci in higher_is_better else int(np.argmin(vals))
+        order = np.argsort(vals)[::-1] if ci in higher_is_better else np.argsort(vals)
+        best_idx[ci] = int(order[0])
+        second_idx[ci] = int(order[1]) if len(order) > 1 else -1
 
     # Build LaTeX
     header_names = {
@@ -628,15 +670,19 @@ def _generate_uncertainty_table(metrics_per_model, ma_per_model):
         3: r"\MSEatk{50}",
         5: "MA",
         6: r"$r(|\epsilon|, \hat{\sigma})$",
+        7: "Ranking skill",
     }
 
     lines = []
     lines.append(r"\begin{table*}[htbp]")
     lines.append(r"\caption{Uncertainty evaluation metrics per model (average $\pm$ standard deviation "
-                 r"over the cross-validation folds). Best values are shown in bold. "
-                 r"The \ac{GNN} and its ensemble achieve the best uncertainty-ranking "
-                 r"related metrics, are well calibrated, and their model errors have the "
-                 r"highest correlation with predicted uncertainty.}")
+                 r"over the cross-validation folds). AUURC: area under the uncertainty--reduction curve "
+                 r"(lower = better). \MSEatk{k}: MSE on the $k$\,\% most confident predictions "
+                 r"(lower = better). MA: miscalibration area (lower = better calibrated). "
+                 r"Ranking skill: normalized risk--reduction skill, independent of overall accuracy "
+                 r"(1 = oracle error ordering, 0 = random; higher = better). "
+                 r"$r(|\epsilon|,\hat{\sigma})$: Pearson correlation between absolute error and predicted "
+                 r"uncertainty (higher = better). Best values are shown in bold, second-best underlined.}")
     lines.append(r"\centering")
     lines.append(r"\label{tab:uncertainty_metrics}")
     ncols = len(col_order)
@@ -656,11 +702,13 @@ def _generate_uncertainty_table(metrics_per_model, ma_per_model):
             val_str = rows_fmt[ri][ci]
             # Format: convert +/- to ± and use $\pm$
             val_str = val_str.replace(" +/- ", r" $\pm$ ")
-            if ri == best_idx[ci]:
-                # Bold just the mean, keep ± std normal
-                parts = val_str.split(r" $\pm$ ")
-                if len(parts) == 2:
-                    val_str = r"\textbf{" + parts[0] + r"}" + r" $\pm$ " + parts[1]
+            # Bold best, underline second-best (mean only, keep ± std normal)
+            parts = val_str.split(r" $\pm$ ")
+            if len(parts) == 2:
+                if ri == best_idx[ci]:
+                    val_str = r"\textbf{" + parts[0] + r"} $\pm$ " + parts[1]
+                elif ri == second_idx[ci]:
+                    val_str = r"\underline{" + parts[0] + r"} $\pm$ " + parts[1]
             cells.append(val_str)
         lines.append(" & ".join(cells) + r" \\")
 
