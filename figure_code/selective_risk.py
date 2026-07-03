@@ -1,9 +1,9 @@
-"""Workstream B — selective-risk / risk-coverage metrics that separate uncertainty
-*ranking quality* from a model's baseline point-prediction accuracy (Reviewer 2, point 2).
+"""Selective-risk / risk-coverage metrics that separate uncertainty *ranking quality*
+from a model's baseline point-prediction accuracy.
 
-R2: uncertainty-based filtering "partly combines two effects: better uncertainty ranking
-and better baseline predictive performance." We disentangle them with the risk-coverage
-framework (Geifman & El-Yaniv, 2017):
+Uncertainty-based filtering combines two effects: better uncertainty ranking and better
+baseline predictive performance. We disentangle them with the risk-coverage framework
+(Geifman & El-Yaniv, 2017):
 
   - selective risk at coverage c = MSE over the fraction c of pairs with LOWEST uncertainty;
   - AURC = area under the risk-coverage curve (lower is better) — confounds accuracy + ranking;

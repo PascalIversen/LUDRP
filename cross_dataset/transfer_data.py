@@ -11,7 +11,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-DREVALPY_DATA = Path(os.environ.get("DREVALPY_DATA", "/Users/piversen/Projects/munich/drevalpy/data"))
+# Path to the drevalpy screening data (GDSC/CTRPv2/CCLE/BeatAML); set DREVALPY_DATA to override.
+DREVALPY_DATA = Path(os.environ.get("DREVALPY_DATA", "drevalpy_data"))
 N_BITS = 128
 MORGAN_RADIUS = 2
 RESPONSE = "LN_IC50_curvecurator"
