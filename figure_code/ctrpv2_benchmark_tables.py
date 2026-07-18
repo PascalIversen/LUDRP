@@ -48,7 +48,7 @@ def load(m):
     return pd.read_csv(RES / f"cv_{m}_ctrpv2_z_norm" / "results.csv", index_col=0)
 
 
-def compute_auc_and_mseks(df_model):
+def compute_auc_and_mseks(df_model, model):
     """Copied from uncertainty_performance_figures.py (AUURC, MSE@10/50, r(|err|,unc))."""
     df = df_model.rename(columns={"response": "gt", "y_preds": "preds", "y_uncertainty": "uncertainty"}).copy()
     df = df[df["gt"].notna() & df["preds"].notna()]
@@ -66,7 +66,8 @@ def compute_auc_and_mseks(df_model):
     mse10 = se[unc < np.quantile(unc, 0.10)].mean() if (unc < np.quantile(unc, 0.10)).any() else np.nan
     mse50 = se[unc < np.quantile(unc, 0.50)].mean() if (unc < np.quantile(unc, 0.50)).any() else np.nan
     abs_err = np.abs(df["gt"].to_numpy() - df["preds"].to_numpy())
-    r = pearsonr(abs_err, unc)[0] if len(unc) > 2 else np.nan
+    # Put uncertainty on a common standard-deviation scale before correlating (see std_from_unc).
+    r = pearsonr(abs_err, std_from_unc(model, unc))[0] if len(unc) > 2 else np.nan
     return auc, float(mse10), float(mse50), float(r)
 
 
@@ -116,7 +117,7 @@ def table2_stats(m):
     per = []
     for f in sorted(df["fold"].unique()):
         d = df[df["fold"] == f]
-        auc, mse10, mse50, r = compute_auc_and_mseks(d)
+        auc, mse10, mse50, r = compute_auc_and_mseks(d, m)
         sr = selective_risk_metrics(d["y_preds"].values, d["response"].values, d["y_uncertainty"].values)
         per.append(dict(auurc=auc, mse10=mse10, mse50=mse50, r=r, skill=sr["ranking_skill"]))
     ms = lambda k: _mean_std(np.array([p[k] for p in per if not np.isnan(p[k])]))
@@ -153,7 +154,7 @@ def build_table1(stats):
         r"\begin{table*}[htbp]",
         r"\caption{\ac{MSE} and Pearson correlation between model predictions and experimental "
         r"logarithmic IC50 values on the CTRPv2 dataset (5-fold leave-cell-line-out). For the "
-        r"drug-wise metrics, \ac{MSE} is computed for each drug and then averaged; the standard "
+        r"drug-wise metrics, \ac{MSE} is the median over drugs; the standard "
         r"deviation represents the variability across drugs. The global metrics are calculated for "
         r"the folds, and the standard deviation is the variation over folds. Best values are shown "
         r"in bold; second-best are underlined.}",

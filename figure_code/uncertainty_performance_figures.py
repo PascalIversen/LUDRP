@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.lines as mlines
 from brokenaxes import brokenaxes
-from scipy.stats import pearsonr, ttest_rel
+from scipy.stats import pearsonr, ttest_rel, norm
 from statsmodels.stats.multitest import multipletests
 from sklearn.metrics import mean_squared_error
 from matplotlib.colors import ListedColormap
@@ -41,6 +41,21 @@ UNCERTAINTY_KIND = {
 }
 MODEL_ZORDER = {"edl": 2, "pnn": 4, "pnne": 3}
 
+# The QuantileNN reports the width of its central quantile interval. The model uses quantiles
+# 0.05/0.95 -> a 90% interval, whose width equals 2*z_0.95*sigma. Use this factor to convert that
+# width to a Gaussian sigma for calibration/coverage and the |error|-vs-sigma metric.
+QNN_WIDTH_TO_STD = 2.0 * norm.ppf(0.95)  # ~= 3.290
+
+
+def _unc_to_std(unc, kind):
+    """Map a model's raw ``y_uncertainty`` output to a predictive standard deviation."""
+    unc = np.clip(np.asarray(unc, float), 0.0, None)
+    if kind == "var":
+        return np.sqrt(unc)
+    if kind == "quantiles":
+        return unc / QNN_WIDTH_TO_STD
+    return unc  # already a std (mcd, br)
+
 
 def results_path(model):
     return os.path.join(BASE_PATH, f"cv_{model}{COLD_START_SUFFIX}{SUFFIX}", "results.csv")
@@ -68,7 +83,7 @@ def load_fold_dfs(model):
     return dfs
 
 
-def compute_auc_and_mseks(df_model):
+def compute_auc_and_mseks(df_model, kind="var"):
     df = df_model.rename(columns={"response": "gt", "y_preds": "preds", "y_uncertainty": "uncertainty"}).copy()
     df = df[df["gt"].notna() & df["preds"].notna()]
     if df.empty:
@@ -91,9 +106,12 @@ def compute_auc_and_mseks(df_model):
     mse10 = se[unc < thr10].mean() if (unc < thr10).any() else np.nan
     mse50 = se[unc < thr50].mean() if (unc < thr50).any() else np.nan
     mse90 = se[unc < thr90].mean() if (unc < thr90).any() else np.nan
-    # Pearson correlation between absolute error and uncertainty
+    # Pearson correlation between absolute error and predicted uncertainty, put on a common
+    # standard-deviation scale so it is comparable across models whose y_uncertainty is a
+    # variance (Gaussian/ensemble/EDL/RF), a std (MCDropout/BR), or a quantile width (QNN).
     abs_err = np.abs(df["gt"].to_numpy() - df["preds"].to_numpy())
-    r_err_unc = pearsonr(abs_err, unc)[0] if len(unc) > 2 else np.nan
+    sigma = _unc_to_std(unc, kind)
+    r_err_unc = pearsonr(abs_err, sigma)[0] if len(sigma) > 2 else np.nan
     return float(auc), float(mse10), float(mse50), float(mse90), float(r_err_unc)
 
 
@@ -134,13 +152,12 @@ def _ranking_skill(df_model):
 
 
 def get_pi_qnn(df_model, nominal=0.9):
-    if not np.isclose(nominal, 0.9):
-        raise ValueError("only supports nominal=0.9")
+    # y_uncertainty is the width of the QuantileNN's 0.05-0.95 (90%) interval. Convert it to a
+    # Gaussian sigma and build the requested nominal interval for coverage/sharpness.
     preds = df_model["preds"].to_numpy(float)
-    unc = df_model["unc"].to_numpy(float)
-    lo = preds - unc / 2
-    hi = preds + unc / 2
-    return lo, hi
+    std = df_model["unc"].to_numpy(float) / QNN_WIDTH_TO_STD
+    z = norm.ppf(0.5 + nominal / 2.0)
+    return preds - z * std, preds + z * std
 
 
 def _to_booktabs(tex):
@@ -168,7 +185,8 @@ def _plot_auurc_curves(ax, skip_models=()):
         per_fold = []
         pooled_df = []
         for df in fold_dfs:
-            auc, mse10, mse50, mse90, r_err_unc = compute_auc_and_mseks(df)
+            auc, mse10, mse50, mse90, r_err_unc = compute_auc_and_mseks(
+                df, kind=UNCERTAINTY_KIND.get(model, "var"))
             per_fold.append({"auc": auc, "mse10": mse10, "mse50": mse50, "mse90": mse90,
                              "r_err_unc": r_err_unc, "skill": _ranking_skill(df)})
             pooled_df.append(df)
@@ -418,7 +436,7 @@ def plot_calibration():
         if model in ["pnn", "pnne", "edl", "rf"]:
             get_std = lambda df: df["y_uncertainty"].values ** 0.5
         elif model == "qnn":
-            get_std = lambda df: df["y_uncertainty"].values / 3.29
+            get_std = lambda df: df["y_uncertainty"].values / QNN_WIDTH_TO_STD
         else:
             get_std = lambda df: df["y_uncertainty"].values
 

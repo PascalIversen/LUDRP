@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from uadr.utils.data_preprocessing import get_preprocessed_features
 from uadr.utils.prediction_evaluation import prediction_quality_metrics
+from uadr.utils.seeding import seed_everything
 from uadr.models import uncertainty_aware_model as uam
 
 
@@ -83,9 +84,12 @@ def case_specific_finetune_setup(
     num_workers: int = 0,
     top_k_drugs: int = 50,
     save_frequency: int = 10,
-    current_split: int = 0
+    current_split: int = 0,
+    seed: int = 0,
 
 ):
+    # Seed per split so the random-baseline drug selection and model init are reproducible.
+    seed_everything(seed + current_split)
     result_path = f"{base_path}/case-specific_finetune/{run_id}_{scaling_mode}/split_{current_split}/"
     os.makedirs(result_path, exist_ok=True)
 

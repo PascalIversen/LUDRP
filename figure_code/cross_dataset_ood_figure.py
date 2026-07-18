@@ -49,8 +49,8 @@ def make_figure():
     axL, axR = fig.add_subplot(gs[0]), fig.add_subplot(gs[1])
 
     axL.imshow(syn_det, cmap=BRIGHT_CIVIDIS, vmin=0, vmax=1, aspect="auto", interpolation="nearest")
-    axL.set_title("Synthetic OOD (Gaussian perturbation)", fontsize=FS_TITLE)
-    axL.set_xlabel("Perturbation strength σ", fontsize=FS_LABEL)
+    axL.set_title("Synthetic OOD (signed perturbation)", fontsize=FS_TITLE)
+    axL.set_xlabel("Perturbation magnitude μ", fontsize=FS_LABEL)
     axL.set_xticks(range(len(shift_cols))); axL.set_xticklabels(shift_cols, fontsize=FS_TICK)
     axL.set_yticks(range(len(rows))); axL.set_yticklabels(rows, fontsize=FS_TICK, va="center")
     for i in range(syn_det.shape[0]):

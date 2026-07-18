@@ -47,11 +47,12 @@ if model_type == "br":
     }
     model_class = br.BayesianRidgeRegression
 elif model_type == "rf":
+    # random_forest.py additionally applies max_samples=0.85 and max_features=0.85.
     model_kwargs = {
-        "n_estimators":  [150],
-        "max_depth": [8],
+        "n_estimators": [200],
+        "max_depth": [13],
         "n_jobs": [-1],
-
+        "random_state": [0],
     }
     model_class = rf.RandomForest
 else:
@@ -66,7 +67,8 @@ else:
 
 if model_type == "qfn":
     model_class = qfn.QuantileFeedForwardNetwork
-    model_kwargs["quantiles"] = [[0.15, 0.5, 0.85]]
+    # 0.05/0.50/0.95 quantiles give a 90% central prediction interval.
+    model_kwargs["quantiles"] = [[0.05, 0.5, 0.95]]
 elif model_type == "pnn":
     model_class = pnn.ProbabilisticFeedForwardNetwork
     model_kwargs["importance_weighting"] = [False]
@@ -81,9 +83,11 @@ elif model_type == "pnne":
     tuning = False # No tuning for ensemble models bc of their computational cost
 elif model_type == "mcd":
     model_class = mcd.MCDropoutFeedForwardNetwork
+    # sample_size = number of stochastic forward passes at inference.
     model_kwargs["sample_size"] = [10]
 elif model_type == "edl":
     model_class = edl.EvidentialFeedForwardNetwork
+    # Evidence-regularization weight grid.
     model_kwargs["reg_coeff"] = [0.01, 0.1]
 
 trainer_kwargs = {"progress_bar_refresh_rate": 0, "max_epochs": 1000}
