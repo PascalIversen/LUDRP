@@ -10,8 +10,13 @@ requires-python = ">=3.9"
 dependencies = [
     "numpy",
     "pandas",
+    "jinja2>=3.1.2",
     "scipy",
     "scikit-learn",
+    "statsmodels",
+    "seaborn",
+    "scikit-posthocs",
+    "uncertainty-toolbox",
     "torch",
     "pytorch-lightning",
     "matplotlib",

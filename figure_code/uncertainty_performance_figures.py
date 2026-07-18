@@ -4,6 +4,8 @@ sys.dont_write_bytecode = True
 import os
 import glob
 import numpy as np
+if not hasattr(np, "trapezoid"):  # numpy < 2.0 compatibility
+    np.trapezoid = np.trapz
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
