@@ -49,8 +49,8 @@ if model_type == "br":
 elif model_type == "rf":
     # random_forest.py additionally applies max_samples=0.85 and max_features=0.85.
     model_kwargs = {
-        "n_estimators": [200],
-        "max_depth": [13],
+        "n_estimators": [200, 500],
+        "max_depth": [10, 15],
         "n_jobs": [-1],
         "random_state": [0],
     }
@@ -87,7 +87,8 @@ elif model_type == "mcd":
     model_kwargs["sample_size"] = [10]
 elif model_type == "edl":
     model_class = edl.EvidentialFeedForwardNetwork
-    # Evidence-regularization weight grid.
+    # Evidence-regularization weight grid. A wider search (incl. 0.001 and 1.0) does not help;
+    # reg_coeff=1.0 destabilizes the evidential variance, so the search is kept to {0.01, 0.1}.
     model_kwargs["reg_coeff"] = [0.01, 0.1]
 
 trainer_kwargs = {"progress_bar_refresh_rate": 0, "max_epochs": 1000}

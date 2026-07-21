@@ -227,6 +227,7 @@ def _plot_coverage_panel(ax, skip_models=()):
     z = 1.6448536269514722
 
     points_x, points_y, err_x, err_y, colors_pts, zorders_pts = [], [], [], [], [], []
+    labels_pts = []
     for model in MODELS:
         if model in skip_models:
             continue
@@ -268,10 +269,28 @@ def _plot_coverage_panel(ax, skip_models=()):
         err_y.append(sd_width)
         colors_pts.append(MODEL_COLORS[model])
         zorders_pts.append(MODEL_ZORDER.get(model, 1))
+        labels_pts.append(model)
 
-    for x, y, ex, ey, c, zo in zip(points_x, points_y, err_x, err_y, colors_pts, zorders_pts):
+    # per-model label offsets (in points) placing each model name next to its marker,
+    # reproducing the hand-annotated panel (b).
+    # (dx, dy in points, ha, va, use_arrow). GNNE/EDL sit to the upper-left with a connector
+    # so their labels stay inside the axes rather than pushing the panel wider.
+    label_off = {
+        "mcd": (0, 11, "center", "bottom", False), "rf": (0, 11, "center", "bottom", False),
+        "qnn": (-7, -3, "right", "top", False), "pnn": (-7, 5, "right", "center", False),
+        "pnne": (-40, 2, "right", "bottom", True), "edl": (-40, 20, "right", "bottom", True),
+        "br": (-8, 0, "right", "center", False),
+    }
+    for x, y, ex, ey, c, zo, m in zip(points_x, points_y, err_x, err_y, colors_pts, zorders_pts, labels_pts):
         ax.errorbar(x, y, xerr=ex, yerr=ey, fmt="+", ms=8,
                     ecolor=c, mec=c, mfc=c, capsize=2.9, capthick=1.2, zorder=zo)
+        name = "Gaussian NN Ens." if m == "pnne" else MODEL_TO_FULL_NAME[m]
+        dx, dy, ha, va, arrow = label_off.get(m, (6, 6, "left", "bottom", False))
+        ann = dict(textcoords="offset points", xytext=(dx, dy), ha=ha, va=va,
+                   fontsize=9, color=c, zorder=zo + 0.1)
+        if arrow:
+            ann["arrowprops"] = dict(arrowstyle="->", color=c, lw=0.7, shrinkA=1, shrinkB=2)
+        ax.annotate(name, (x, y), **ann)
 
     ax.axvline(x=0.9, color="red", linestyle="--", linewidth=1.1, alpha=1, zorder=1.6)
     ax.set_xlabel("Coverage at 90% nominal", fontsize=AXIS_LABEL_SIZE)
