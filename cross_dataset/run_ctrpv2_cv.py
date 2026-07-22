@@ -39,7 +39,10 @@ def model_setup(model_type):
         kw = {"alpha_1": [1e-6, 1e-5, 1e-4], "alpha_2": [1e-6, 1e-4], "lambda_1": [1e-6], "lambda_2": [1e-6]}
         return br.BayesianRidgeRegression, kw, True
     if model_type == "rf":
-        return rf.RandomForest, {"n_estimators": [150], "max_depth": [8], "n_jobs": [4]}, True
+        # CTRPv2 uses the RF configuration selected on GDSC (500 trees, depth 15); no re-search.
+        # random_forest.py additionally applies max_samples=0.85 and max_features=0.85.
+        return rf.RandomForest, {"n_estimators": 500, "max_depth": 15,
+                                 "n_jobs": -1, "random_state": 0}, False
     kw = {"n_units_per_layer": [[64, 16, 8], [128, 32, 16], [64, 16, 16, 8, 8]], "dropout_prob": [0.1, 0.3]}
     if model_type == "qfn":
         kw["quantiles"] = [[0.05, 0.5, 0.95]]
