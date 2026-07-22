@@ -22,7 +22,7 @@ pip install -e ".[shap]"
 
 ## Data
 
-The experiments use the [GDSC](https://www.cancerrxgene.org/) drug response database. Processed data with the right structure is available at: [Zenodo](https://zenodo.org/records/19219091)
+The experiments use the [GDSC](https://www.cancerrxgene.org/) drug response database. Processed data with the right structure is available at: [Zenodo](https://zenodo.org/records/19219090)
 
 ## Running experiments
 
