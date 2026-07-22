@@ -43,6 +43,9 @@ FULL_NAME = {
     "br": "Bayesian Ridge", "rf": "Random Forest", "mcd": "MC Dropout", "qnn": "Quantile NN",
     "pnne": "Gaussian NN\\nEnsemble", "edl": "Evidential DL", "pnn": "Gaussian NN",
 }
+# The cross-dataset transfer runners write QuantileNN predictions under its model type "qfn",
+# whereas the GDSC synthetic results use "qnn". Map to the transfer-file token where they differ.
+XFER_PREFIX = {"qnn": "qfn"}
 SHIFTS = ["0.01", "0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1"]
 
 COL_INDIST = "in-dist\\n(reference)"
@@ -96,25 +99,26 @@ def cross_rows(pred_root):
     rows = []
     for m in MODEL_ORDER:
         name = FULL_NAME[m]
+        xm = XFER_PREFIX.get(m, m)   # transfer-file token (differs from GDSC token for QuantileNN)
 
         # in-distribution reference (native feature space), MSE only; AUROC is 0.5 by definition.
-        nat_id = _by_seed(pred_root, "xdataset_native", f"{m}__CTRPv2__CTRPv2__s*.csv")
-        harm_id = _by_seed(pred_root, "xdataset_harmonized", f"{m}__CTRPv2__CTRPv2__s*.csv")
+        nat_id = _by_seed(pred_root, "xdataset_native", f"{xm}__CTRPv2__CTRPv2__s*.csv")
+        harm_id = _by_seed(pred_root, "xdataset_harmonized", f"{xm}__CTRPv2__CTRPv2__s*.csv")
         mse_indist = _mean_over_seeds([np.mean(d["err"] ** 2) for d in nat_id.values()])
         rows += [("cross", name, COL_INDIST, "auroc", 0.5),
                  ("cross", name, COL_INDIST, "mse", mse_indist)]
 
         # harmonized CTRPv2 -> GDSC (biological/population shift only).
-        harm = _by_seed(pred_root, "xdataset_harmonized", f"{m}__CTRPv2__GDSC2__s*.csv")
+        harm = _by_seed(pred_root, "xdataset_harmonized", f"{xm}__CTRPv2__GDSC2__s*.csv")
         rows += _scenario(name, COL_HARM, harm_id, harm)
 
         # BeatAML: single split (seed 0), CTRPv2be feature space.
-        be_id = _by_seed(pred_root, "xdataset_native", f"{m}__CTRPv2be__CTRPv2be__s0.csv")
-        be = _by_seed(pred_root, "xdataset_native", f"{m}__CTRPv2be__BeatAML__s0.csv")
+        be_id = _by_seed(pred_root, "xdataset_native", f"{xm}__CTRPv2be__CTRPv2be__s0.csv")
+        be = _by_seed(pred_root, "xdataset_native", f"{xm}__CTRPv2be__BeatAML__s0.csv")
         rows += _scenario(name, COL_BEATAML, be_id, be)
 
         # native CTRPv2 -> GDSC (adds the microarray-vs-RNA-seq platform shift).
-        nat = _by_seed(pred_root, "xdataset_native", f"{m}__CTRPv2__GDSC2__s*.csv")
+        nat = _by_seed(pred_root, "xdataset_native", f"{xm}__CTRPv2__GDSC2__s*.csv")
         rows += _scenario(name, COL_NATIVE, nat_id, nat)
     return rows
 
