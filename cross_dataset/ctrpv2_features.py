@@ -18,7 +18,8 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
 LUDRP_ROOT = Path(__file__).resolve().parents[1]
-DREVALPY_DATA = Path(os.environ.get("DREVALPY_DATA", "/Users/piversen/Projects/munich/drevalpy/data"))
+# Path to the drevalpy screening data (set DREVALPY_DATA to override).
+DREVALPY_DATA = Path(os.environ.get("DREVALPY_DATA", "drevalpy_data"))
 MANICA_GENES = LUDRP_ROOT / "examples" / "data" / "gene_list_paccmann_network_prop.txt"
 RESPONSE = "LN_IC50_curvecurator"
 N_BITS, MORGAN_RADIUS = 128, 2

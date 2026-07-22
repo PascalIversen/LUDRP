@@ -12,6 +12,7 @@ import torch
 from uadr.utils.data_preprocessing import get_preprocessed_features
 from uadr.utils.prediction_evaluation import prediction_quality_metrics
 from uadr.utils.uncertainty_evaluation import uncertainty_quality_metrics
+from uadr.utils.seeding import seed_everything
 from uadr.models import uncertainty_aware_model as uam
 from uadr.models import probabilistic_NN as pnn
 from uadr.models import bayesian_regression as br
@@ -36,6 +37,7 @@ def crossvalidate(
     skip_existing_folds: bool = True,
     run_split: Optional[int] = None,
     data_dir: str = "data",
+    seed: int = 0,
 ):
     """Run a Uncertainty Aware Model fitting and tuning procedure in a cross validation
 
@@ -59,6 +61,8 @@ def crossvalidate(
         run_split (int): if not None, only run the specified split. Defaults to None.
     """
     warnings.filterwarnings("ignore", ".*does not have many workers.*")
+
+    seed_everything(seed)
 
     if trainer_kwargs is None:
         trainer_kwargs = {"progress_bar_refresh_rate": 0, "max_epochs": 1000}

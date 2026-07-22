@@ -4,7 +4,7 @@ Unlike transfer_data.py (which uses the harmonized COMBINED2271 space), here eac
 expressed in its OWN Manica-gene space (arcsinh of its native expression). A model trained on
 dataset A is applied to dataset B by taking B's native expression on the same genes and applying
 A's training scaler WITHOUT refitting -> the microarray-vs-RNA-seq platform shift is preserved
-(the ~24 sigma off-manifold case). Same drugs/response/split machinery as transfer_data.
+(the large cross-platform shift). Same drugs/response/split machinery as transfer_data.
 """
 from __future__ import annotations
 
@@ -21,8 +21,8 @@ from transfer_data import norm, load_response, build_fingerprints, DREVALPY_DATA
 
 MANICA = Path(__file__).resolve().parents[1] / "examples" / "data" / "gene_list_paccmann_network_prop.txt"
 DATASETS = ("GDSC2", "CCLE", "CTRPv2")
-# native per-dataset expression; defaults to the drevalpy tree but can point at a private
-# slim copy (only the common Manica genes) so we never touch the shared canonical files.
+# native per-dataset expression; defaults to the drevalpy tree. Set NATIVE_EXPR_DIR to point at
+# a slim copy containing only the common Manica genes.
 EXPR_DIR = Path(os.environ.get("NATIVE_EXPR_DIR", str(DREVALPY_DATA)))
 
 

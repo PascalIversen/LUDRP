@@ -48,8 +48,8 @@ def model_setup(model_type):
         kw["importance_weighting"] = [False]
         return pnn.ProbabilisticFeedForwardNetwork, kw, True
     if model_type == "pnne":
-        # n_models=5 (vs paper's 10) for tractability on the 8-core box; uncertainty decomposition
-        # is essentially unchanged, and it halves the GNNE's runtime. Documented deviation.
+        # n_models=5 (vs 10 in the main benchmark) for tractability; halves the ensemble runtime
+        # and leaves the epistemic/aleatoric decomposition essentially unchanged.
         kw = {"n_models": 5, "shuffle_eval": True, "n_units_per_layer": [128, 32, 16], "dropout_prob": 0.3}
         return pnn.ProbabilisticFeedForwardEnsemble, kw, False  # no tuning for the ensemble
     if model_type == "mcd":
