@@ -42,7 +42,7 @@ CFG = {
     "qfn":  (qfn.QuantileFeedForwardNetwork, dict(n_units_per_layer=[128, 32, 16], dropout_prob=0.3, quantiles=[0.15, 0.5, 0.85])),
     "mcd":  (mcd.MCDropoutFeedForwardNetwork, dict(n_units_per_layer=[128, 32, 16], dropout_prob=0.3, sample_size=10)),
     "edl":  (edl.EvidentialFeedForwardNetwork, dict(n_units_per_layer=[128, 32, 16], dropout_prob=0.3, reg_coeff=0.1)),
-    "rf":   (rf.RandomForest, dict(n_estimators=150, max_depth=8, n_jobs=4)),
+    "rf":   (rf.RandomForest, dict(n_estimators=500, max_depth=15, n_jobs=-1, random_state=0)),
     "br":   (br.BayesianRidgeRegression, dict(alpha_1=1e-6, alpha_2=1e-6, lambda_1=1e-6, lambda_2=1e-6)),
 }
 NO_CKPT = (pnn.ProbabilisticFeedForwardEnsemble, br.BayesianRidgeRegression, rf.RandomForest)
