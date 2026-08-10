@@ -35,6 +35,24 @@ def build_labels_and_scores(id_scores, ood_scores):
     s = np.concatenate([id_scores, ood_scores])
     return y_true, s
 
+def thin_roc(fpr, tpr, tol=1e-4):
+    """Drop ROC vertices within `tol` of the last kept one, endpoints preserved.
+
+    roc_curve() emits one vertex per unique score, i.e. ~1e5 per curve for this data,
+    which makes the vector PDF enormous (and slow to typeset and render). At the size
+    these panels are printed, tol=1e-4 is well under a thousandth of a pixel, so the
+    drawn curve is unchanged.
+    """
+    if len(fpr) < 3:
+        return fpr, tpr
+    keep = [0]
+    for i in range(1, len(fpr) - 1):
+        if abs(fpr[i] - fpr[keep[-1]]) >= tol or abs(tpr[i] - tpr[keep[-1]]) >= tol:
+            keep.append(i)
+    keep.append(len(fpr) - 1)
+    return fpr[keep], tpr[keep]
+
+
 def auroc_from_scores(id_scores, ood_scores):
     y_true, s = build_labels_and_scores(id_scores, ood_scores)
     if np.allclose(s.min(), s.max()):
@@ -188,6 +206,7 @@ for ax_idx, sft in enumerate(SHIFTS):
                     fpr, tpr = np.array([0, 1]), np.array([0, 1])
                 else:
                     fpr, tpr, _ = roc_curve(y_true, scores)
+                    fpr, tpr = thin_roc(fpr, tpr)
                 ax.plot(fpr, tpr,
                         label=f"{MODEL_TO_FULL_NAME[model]}\n ({comp_name})",
                         color=DECOMP_COLORS[model][comp_name],
@@ -202,6 +221,7 @@ for ax_idx, sft in enumerate(SHIFTS):
                 fpr, tpr = np.array([0, 1]), np.array([0, 1])
             else:
                 fpr, tpr, _ = roc_curve(y_true, scores)
+                fpr, tpr = thin_roc(fpr, tpr)
             ax.plot(fpr, tpr,
                     label=MODEL_TO_FULL_NAME[model],
                     color=MODEL_COLORS[model], linestyle=LINESTYLES[model],

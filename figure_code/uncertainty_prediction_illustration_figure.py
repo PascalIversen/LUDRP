@@ -348,7 +348,10 @@ def plot_stratified_uncertainty(results, cell_line="CESS", n_total=20, save_path
     fig_width = max(14, n_drugs * 0.7)
     fig, ax = plt.subplots(figsize=(fig_width, 9))
 
-    y = np.linspace(-5, 5, 1000)
+    # 400 points is visually indistinguishable from 1000 for a smooth unimodal PDF
+    # (0.025 z-units, well under a printed point) but each drug contributes three
+    # artists, so the vector path count -- and the supplementary PDF -- drops 2.5x.
+    y = np.linspace(-5, 5, 400)
 
     c_sens = "#424242"
     bin_colors = {
