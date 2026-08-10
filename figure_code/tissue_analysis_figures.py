@@ -172,7 +172,10 @@ def plot_tissue_pathway_clustermap(results, save_path, uncertainty_column="y_unc
         index="Tissue", columns="Target pathway", values=uncertainty_column, aggfunc="mean")
 
     g = sns.clustermap(
-        heatmap_data, cmap="coolwarm", figsize=(24, 21),
+        # Wider than tall: the manuscript constrains this figure by width, so a
+        # squarer figure just costs page height. Cells stay rectangular and no
+        # text shrinks.
+        heatmap_data, cmap="coolwarm", figsize=(24, 15),
         cbar_kws={"label": "Mean Uncertainty", "orientation": "horizontal"},
         row_cluster=True, col_cluster=True,
         xticklabels=True, yticklabels=True,
@@ -189,13 +192,20 @@ def plot_tissue_pathway_clustermap(results, save_path, uncertainty_column="y_unc
     for tick in g.ax_heatmap.get_yticklabels():
         tick.set_fontsize(16 + font_adder)
 
-    g.ax_cbar.set_aspect(0.04)
-    pos = g.cax.get_position()
-    g.cax.set_position([pos.x0 + 0.0125, pos.y0 + 0.073, pos.width + 0.03, pos.height])
+    # Park the colourbar in the empty bottom-left corner, below the row dendrogram and
+    # left of the rotated column labels. Absolute figure coordinates, not offsets from
+    # seaborn's default top-left slot -- that slot shrinks with the figure height and
+    # the bar ended up overlapping the dendrogram.
+    # Narrow enough that the right-hand tick clears the first rotated column label,
+    # which starts at the heatmap's left edge (~0.13 in figure coordinates).
+    g.cax.set_position([0.030, 0.100, 0.075, 0.015])
     data_min = heatmap_data.min().min()
     data_max = heatmap_data.max().max()
     g.ax_cbar.set_xticks([data_min, data_max])
     g.ax_cbar.set_xticklabels([round(data_min, 2), round(data_max, 2)])
+    # rcParams["font.size"] is raised to ~29 earlier in this module, which the colourbar
+    # ticks would otherwise inherit and overrun their slot.
+    g.ax_cbar.tick_params(labelsize=16 + font_adder)
 
     plt.savefig(save_path, dpi=300)
     print(f"Saved: {save_path}")

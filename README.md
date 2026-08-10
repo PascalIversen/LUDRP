@@ -60,4 +60,11 @@ python figure_code/tissue_analysis_figures.py
 python figure_code/case_specific_fine_tuning_figures.py
 python figure_code/XAI_drivers_figures.py
 python figure_code/uncertainty_prediction_illustration_figure.py
+python figure_code/nongaussian_calibration.py
 ```
+
+`nongaussian_calibration.py` checks whether approximating the Random Forest predictive
+distribution as Gaussian distorts the calibration comparison, by recomputing coverage
+non-parametrically from the per-tree predictions. It reads the per-fold `calib_*.json`
+shipped in `LUDRP_results_data.zip`; pass `--recompute` to regenerate them from a refit
+(roughly an hour per fold).

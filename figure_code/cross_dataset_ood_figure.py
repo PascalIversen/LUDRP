@@ -44,7 +44,10 @@ def make_figure():
     rows, shift_cols, xd_labels, xcols, syn_det, xd_det, xd_mse = load()
     FS_CELL, FS_TICK, FS_LABEL, FS_TITLE = 12, 12, 14, 15
 
-    fig = plt.figure(figsize=(16, max(5, 0.95 * len(rows))))
+    # Height per model row. The figure is width-constrained in the manuscript, so
+    # shrinking this compresses the heatmap cells without shrinking any text.
+    ROW_H = 0.60
+    fig = plt.figure(figsize=(16, max(3.2, ROW_H * len(rows))))
     gs = GridSpec(1, 2, width_ratios=[len(shift_cols), len(xcols) * 1.9], wspace=0.05)
     axL, axR = fig.add_subplot(gs[0]), fig.add_subplot(gs[1])
 
