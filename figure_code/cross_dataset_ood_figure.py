@@ -73,8 +73,12 @@ def make_figure():
             axR.text(j, i, f"{v:.2f}", ha="center", va="center", fontsize=FS_CELL,
                      color="white" if v < 0.4 else "black", fontweight="bold")
 
-    axL.text(-0.06, 1.05, "A", transform=axL.transAxes, fontsize=20, fontweight="bold", va="bottom", ha="right")
-    axR.text(-0.04, 1.05, "B", transform=axR.transAxes, fontsize=20, fontweight="bold", va="bottom", ha="right")
+    # Anchored to the left edge of each panel's own axes. Right-aligning them outside
+    # the axes put "B" in the narrow gap between the panels, where it read as sitting on
+    # top of the left panel rather than labelling the right one.
+    for _ax, _lab in ((axL, "A"), (axR, "B")):
+        _ax.text(0.0, 1.05, _lab, transform=_ax.transAxes, fontsize=20,
+                 fontweight="bold", va="bottom", ha="left")
     cb = fig.colorbar(imR, ax=[axL, axR], orientation="vertical", location="right", pad=0.02, shrink=0.85)
     cb.set_label("AUROC", fontsize=FS_LABEL); cb.ax.tick_params(labelsize=FS_TICK)
 
