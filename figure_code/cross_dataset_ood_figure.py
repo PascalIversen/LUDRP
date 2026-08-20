@@ -73,14 +73,14 @@ def make_figure():
             axR.text(j, i, f"{v:.2f}", ha="center", va="center", fontsize=FS_CELL,
                      color="white" if v < 0.4 else "black", fontweight="bold")
 
-    axL.text(-0.06, 1.05, "a", transform=axL.transAxes, fontsize=20, fontweight="bold", va="bottom", ha="right")
-    axR.text(-0.04, 1.05, "b", transform=axR.transAxes, fontsize=20, fontweight="bold", va="bottom", ha="right")
+    axL.text(-0.06, 1.05, "A", transform=axL.transAxes, fontsize=20, fontweight="bold", va="bottom", ha="right")
+    axR.text(-0.04, 1.05, "B", transform=axR.transAxes, fontsize=20, fontweight="bold", va="bottom", ha="right")
     cb = fig.colorbar(imR, ax=[axL, axR], orientation="vertical", location="right", pad=0.02, shrink=0.85)
     cb.set_label("AUROC", fontsize=FS_LABEL); cb.ax.tick_params(labelsize=FS_TICK)
 
     os.makedirs(FIGURES_DIR, exist_ok=True)
     out = os.path.join(FIGURES_DIR, "cross_dataset_ood.pdf")
-    fig.savefig(out, bbox_inches="tight"); fig.savefig(out.replace(".pdf", ".png"), dpi=350, bbox_inches="tight")
+    fig.savefig(out, bbox_inches="tight", dpi=600); fig.savefig(out.replace(".pdf", ".png"), dpi=350, bbox_inches="tight")
     plt.close(fig)
     print("saved", out)
     return rows, xd_labels, xd_mse

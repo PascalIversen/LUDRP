@@ -422,13 +422,13 @@ def plot_four_panel_no_br():
 
     fig.subplots_adjust(hspace=0.35)
 
-    # subplot labels
-    labels = ["(a)", "(b)", "(c)", "(d)"]
-    ax_a.text(0.20, 0.98, labels[0], transform=ax_a.transAxes,
-              fontsize=14 + font_adder, fontweight="bold", va="top", ha="left")
-    for ax_flat, lab in zip(axs.flat[1:], labels[1:]):
-        ax_flat.text(0.10, 0.98, lab, transform=ax_flat.transAxes,
-                     fontsize=12 + font_adder, fontweight="bold", va="top", ha="left")
+    # subplot labels: uppercase, above the upper-left corner of each panel, as the
+    # journal requires ("Each panel should be labelled as a letter (A, B, C, D, etc.)
+    # in the upper-left corner of each panel").
+    labels = ["A", "B", "C", "D"]
+    for ax_flat, lab in zip(axs.flat, labels):
+        ax_flat.text(-0.13, 1.03, lab, transform=ax_flat.transAxes,
+                     fontsize=16 + font_adder, fontweight="bold", va="bottom", ha="left")
 
     save_path = os.path.join(FIGURES_DIR, f"uncertainty_plot{COLD_START_SUFFIX}pnne_with_fold_errorbars_no_br.pdf")
     fig.savefig(save_path, bbox_inches="tight", dpi=350)
